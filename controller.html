@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Controller (local test)</title></head>
+<body>
+<h3>本机测试控制面板</h3>
+<div>
+    Server: <input id="server" value="ws://localhost:8080" style="width:260px"/><br/>
+    <button id="connect">Connect</button>
+    <span id="st">Disconnected</span>
+</div>
+
+<div id="controls" style="margin-top:12px; display:none;">
+    <button id="up">↑</button><br/>
+    <button id="left">←</button>
+    <button id="action">Action</button>
+    <button id="right">→</button><br/>
+    <button id="down">↓</button>
+</div>
+
+<script>
+    let ws = null;
+    function log(s){ console.log(s); document.getElementById('st').innerText = s; }
+
+    document.getElementById('connect').addEventListener('click', ()=>{
+        const server = document.getElementById('server').value.trim();
+        if(!server){ alert('填入 WebSocket 地址'); return; }
+        ws = new WebSocket(server);
+        ws.onopen = ()=> { log('Connected'); ws.send(JSON.stringify({ type:'info', msg:'controller connected' })); };
+        ws.onmessage = (ev)=> { console.log('recv', ev.data); };
+        ws.onclose = ()=> { log('Disconnected'); document.getElementById('controls').style.display='none'; };
+        ws.onerror = (e)=> { console.error(e); log('Error'); };
+        ws.onopen = ()=> document.getElementById('controls').style.display='block';
+    });
+
+    function send(obj){ if(ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }
+
+    ['up','down','left','right'].forEach(id=>{
+        const el = document.getElementById(id);
+        el.addEventListener('mousedown', ()=> send({ type:'move', dir:{ x: id==='left'? -1: id==='right'?1:0, y: id==='up'?1: id==='down'?-1:0 }, speed:1 }));
+        el.addEventListener('mouseup', ()=> send({ type:'move', dir:{ x:0, y:0 }, speed:0 }));
+        // touch 支持
+        el.addEventListener('touchstart', (e)=>{ e.preventDefault(); send({ type:'move', dir:{ x: id==='left'? -1: id==='right'?1:0, y: id==='up'?1: id==='down'?-1:0 }, speed:1 }); });
+        el.addEventListener('touchend', (e)=>{ e.preventDefault(); send({ type:'move', dir:{ x:0, y:0 }, speed:0 }); });
+    });
+    document.getElementById('action').addEventListener('click', ()=> send({ type:'action', name:'interact' }));
+</script>
+</body>
+</html>
