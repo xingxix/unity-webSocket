@@ -15,19 +15,19 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 
 // 简单的 token 验证函数（示例）
 // 你可以改成查询 redis/session store，或验证 JWT 等
-function verifyTokenFromReq(req) {
-  // 示例：token 可放在 query ?token=... 或 header: Authorization: Bearer ...
-  const parsed = url.parse(req.url, true);
-  const token = parsed.query && parsed.query.token ? parsed.query.token : (req.headers['authorization'] || '').split(' ')[1];
-  if (!token) return { ok: false, code: 401, message: 'no token' };
-  try {
-    //那如果真要用token的话这里要改
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret-example');
-    return { ok: true, payload };
-  } catch (e) {
-    return { ok: false, code: 403, message: 'invalid token' };
-  }
-}
+// function verifyTokenFromReq(req) {
+//   // 示例：token 可放在 query ?token=... 或 header: Authorization: Bearer ...
+//   const parsed = url.parse(req.url, true);
+//   const token = parsed.query && parsed.query.token ? parsed.query.token : (req.headers['authorization'] || '').split(' ')[1];
+//   if (!token) return { ok: false, code: 401, message: 'no token' };
+//   try {
+//     //那如果真要用token的话这里要改
+//     const payload = jwt.verify(token, process.env.JWT_SECRET || 'secret-example');
+//     return { ok: true, payload };
+//   } catch (e) {
+//     return { ok: false, code: 403, message: 'invalid token' };
+//   }
+// }
 
 //竟然是http
 const server = http.createServer((req, res) => {
