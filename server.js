@@ -3,7 +3,7 @@
 const http = require('http');
 const WebSocket = require('ws');
 const url = require('url');
-const jwt = require('jsonwebtoken'); // 可选：若不需要鉴权，移除相关代码
+// const jwt = require('jsonwebtoken'); // 可选：若不需要鉴权，移除相关代码
 
 // 配置（可通过环境变量覆盖）
 const WS_PATH = process.env.WS_PATH || '/ws';
