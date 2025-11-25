@@ -47,8 +47,9 @@ wss.on('connection', (ws) => {
   ws._id = id;
   ws._isAlive = true;           // 心跳标记
   ws._createdAt = Date.now();
-  ws._meta = clientInfo || {};
-  console.log(`[connect] id=${id} ip=${ws._meta.ip} auth=${!!ws._meta.authPayload} total=${wss.clients.size}`);
+  // ws._meta = clientInfo || {};
+  // console.log(`[connect] id=${id} ip=${ws._meta.ip} auth=${!!ws._meta.authPayload} total=${wss.clients.size}`);
+  console.log(`[connect] id=${id} total=${wss.clients.size}`);
     ws.on('pong', () => {
     // 客户端响应服务器 ping，标记为活跃
     ws._isAlive = true;
@@ -114,7 +115,8 @@ const pingInterval = setInterval(() => {
   const now = Date.now();
   for (const ws of wss.clients) {
     if (ws._isAlive === false) {
-      console.log(`[terminate] id=${ws._id} ip=${ws._meta && ws._meta.ip}`);
+      // console.log(`[terminate] id=${ws._id} ip=${ws._meta && ws._meta.ip}`);
+      console.log(`[terminate] id=${ws._id}`);
       try { ws.terminate(); } catch (_) {}
       continue;
     }
