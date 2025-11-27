@@ -57,6 +57,14 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => {
     const msg = message.toString();
     console.log('recv:', msg);
+    //心跳一下
+        try {
+        const obj = JSON.parse(text);
+        if(obj.type === 'ping'){
+            ws._isAlive = true;      // 标记存活
+            return;                  // 不广播心跳包
+        }
+    } catch(e){}
     // 简单广播：把收到的消息转发给所有已连接客户端（包括发送者）
     for (const client of wss.clients) {
       if (client.readyState === WebSocket.OPEN) {
@@ -123,11 +131,10 @@ const pingInterval = setInterval(() => {
 
     // 标记为将要检查（若下次还是 false 则断开）
     ws._isAlive = false;
-    try {
-      ws.ping(); // 触发客户端回复 pong（如果客户端实现了 pong）
-    } catch (e) {
-      console.error('ping error', e);
-      try { ws.terminate(); } catch (_) {}
+    try{
+      ws.ping();
+    }catch(e){
+
     }
   }
 }, PING_INTERVAL_MS);
