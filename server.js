@@ -59,7 +59,7 @@ wss.on('connection', (ws) => {
     console.log('recv:', msg);
     //心跳一下
         try {
-        const obj = JSON.parse(text);
+        const obj = JSON.parse(msg);
         if(obj.type === 'ping'){
             ws._isAlive = true;      // 标记存活
             return;                  // 不广播心跳包
