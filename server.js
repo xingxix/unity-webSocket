@@ -69,23 +69,23 @@ wss.on('connection', (ws) => {
         }
         //这俩if是绑定用的
         if (obj.type === 'register') {
-    unityMap.set(obj.clientId, ws);
-    ws._clientId = obj.clientId;
-    console.log("Unity 注册:", obj.clientId);
+    unityMap.set(obj.unityClientId, ws);
+    ws._clientId = obj.unityClientId;
+    console.log("Unity 注册:", obj.unityClientId);
 
     // 如果网页已经绑定了，则通知网页 Unity 上线
-    if (controllerMap.has(obj.clientId)) {
-        controllerMap.get(obj.clientId).send(JSON.stringify({ type: "unityOnline" }));
+    if (controllerMap.has(obj.unityClientId)) {
+        controllerMap.get(obj.unityClientId).send(JSON.stringify({ type: "unityOnline" }));
     }
     return;
     }
     if (obj.type === 'bind') {
-    controllerMap.set(obj.clientId, ws);
-    ws._clientId = obj.clientId;
-    console.log("Controller 绑定:", obj.clientId);
+    controllerMap.set(obj.unityClientId, ws);
+    ws._clientId = obj.unityClientId;
+    console.log("Controller 绑定:", obj.unityClientId);
 
     // 如果 Unity 已在线 → 通知网页可以开始控制
-    if (unityMap.has(obj.clientId)) {
+    if (unityMap.has(obj.unityClientId)) {
         ws.send(JSON.stringify({ type:"ok", msg:"Unity found" }));
     }
     else {
@@ -95,57 +95,27 @@ wss.on('connection', (ws) => {
     }
     } catch(e){}
     // 简单广播：把收到的消息转发给所有已连接客户端（包括发送者）
-    for (const client of wss.clients) {
-      if (client.readyState === WebSocket.OPEN) {
-                try {
-          client.send(msg);
-        } catch (e) {
-          console.error('send error', e);
+    //不广播了，只能发给对应clientId的另一端
+    const id = ws._clientId;
+
+    // 如果当前 ws 是 Unity 发来的 → 转发给 Controller
+    if (unityMap.get(id) === ws) {
+        const target = controllerMap.get(id);
+        if (target && target.readyState === WebSocket.OPEN) {
+            target.send(msg);
         }
-      }
+        return;
+    }
+
+    // 如果当前 ws 是 Controller 发来的 → 转发给 Unity
+    if (controllerMap.get(id) === ws) {
+        const target = unityMap.get(id);
+        if (target && target.readyState === WebSocket.OPEN) {
+            target.send(msg);
+        }
+        return;
     }
   });
-
-//   //upgrade这么复杂？认真的吗
-// server.on('upgrade', (req, socket, head) => {
-//   // 1) 限制最大连接数
-//   if (wss.clients.size >= MAX_CONNECTIONS) {
-//     socket.write('HTTP/1.1 503 Service Unavailable\r\n' +
-//                  'Connection: close\r\n' +
-//                  '\r\n');
-//     socket.destroy();
-//     return;
-//   }
-
-//   // 2) 只接受指定 path 的 websocket
-//   const pathname = url.parse(req.url).pathname;
-//   if (pathname !== WS_PATH) {
-//     socket.write('HTTP/1.1 404 Not Found\r\n' +
-//                  'Connection: close\r\n' +
-//                  '\r\n');
-//     socket.destroy();
-//     return;
-//   }
-
-//   // 3) 在这里做鉴权（可同步或异步）
-//   const authResult = verifyTokenFromReq(req);
-//   if (!authResult.ok) {
-//     socket.write(`HTTP/1.1 ${authResult.code} Unauthorized\r\n` +
-//                  'Connection: close\r\n' +
-//                  '\r\n');
-//     socket.destroy();
-//     return;
-//   }
-
-//   // 4) 解析真实客户端 IP（支持代理）
-//   const xff = req.headers['x-forwarded-for'];
-//   const remoteIP = xff ? xff.split(',')[0].trim() : req.socket.remoteAddress;
-
-//   // 5) 交给 ws 完成握手，并把我们想要的元数据通过第二个参数传入 connection 事件
-//   wss.handleUpgrade(req, socket, head, (ws) => {
-//     wss.emit('connection', ws, req, { ip: remoteIP, authPayload: authResult.payload });
-//   });
-// });
 
 // 心跳定时：周期性给客户端发送 ping，并清理超时的 client
 const pingInterval = setInterval(() => {
