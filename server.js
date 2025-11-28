@@ -63,6 +63,7 @@ wss.on('connection', (ws) => {
         try {
         const obj = JSON.parse(msg);
         if(obj.type === 'ping'){
+          console.log('何意味，为什么不打印这句话nnd！');
           console.log('pong received');
             ws._isAlive = true;      // 标记存活
             return;                  // 不广播心跳包
