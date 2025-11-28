@@ -64,7 +64,7 @@ wss.on('connection', (ws) => {
         const obj = JSON.parse(msg);
         if(obj.type === 'ping'){
           console.log('何意味，为什么不打印这句话nnd！');
-          console.log('pong received');
+          console.log('pong received，id=${id}');
             ws._isAlive = true;      // 标记存活
             return;                  // 不广播心跳包
         }
@@ -119,24 +119,20 @@ wss.on('connection', (ws) => {
   });
 
 // 心跳定时：周期性给客户端发送 ping，并清理超时的 client
-const pingInterval = setInterval(() => {
-  const now = Date.now();
-  for (const ws of wss.clients) {
-    if (ws._isAlive === false) {
-      console.log(`[terminate] id=${ws._id}`);
-      try { ws.terminate(); } catch (_) {}
-      continue;
-    }
+// const pingInterval = setInterval(() => {
+//   const now = Date.now();
+//   for (const ws of wss.clients) {
+//     if (ws._isAlive === false) {
+//       console.log(`[terminate] id=${ws._id}`);
+//             console.log(`所以每次断连都走这里？`);
+//       try { ws.terminate(); } catch (_) {}
+//       continue;
+//     }
 
-    // 标记为将要检查（若下次还是 false 则断开）
-    ws._isAlive = false;
-    try{
-      ws.ping();
-    }catch(e){
-
-    }
-  }
-}, PING_INTERVAL_MS);
+//     // 标记为将要检查（若下次还是 false 则断开）
+//     ws._isAlive = false;
+//   }
+// }, PING_INTERVAL_MS);
 
 let shuttingDown = false;
 function gracefulShutdown(timeoutMs = 30000) {
