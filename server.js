@@ -12,6 +12,8 @@ const PONG_TIMEOUT_MS = process.env.PONG_TIMEOUT_MS ? parseInt(process.env.PONG_
 const MAX_CONNECTIONS = process.env.MAX_CONNECTIONS ? parseInt(process.env.MAX_CONNECTIONS,10) : 1000;
 const MAX_PAYLOAD = process.env.MAX_PAYLOAD ? parseInt(process.env.MAX_PAYLOAD,10) : 64 * 1024 * 1024; // ws maxPayload
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
+const unityMap = new Map();      // clientId -> Unity ws
+const controllerMap = new Map(); // clientId -> Controller ws
 
 // 简单的 token 验证函数（示例）
 // 你可以改成查询 redis/session store，或验证 JWT 等
@@ -61,9 +63,36 @@ wss.on('connection', (ws) => {
         try {
         const obj = JSON.parse(msg);
         if(obj.type === 'ping'){
+          console.log('pong received');
             ws._isAlive = true;      // 标记存活
             return;                  // 不广播心跳包
         }
+        //这俩if是绑定用的
+        if (obj.type === 'register') {
+    unityMap.set(obj.clientId, ws);
+    ws._clientId = obj.clientId;
+    console.log("Unity 注册:", obj.clientId);
+
+    // 如果网页已经绑定了，则通知网页 Unity 上线
+    if (controllerMap.has(obj.clientId)) {
+        controllerMap.get(obj.clientId).send(JSON.stringify({ type: "unityOnline" }));
+    }
+    return;
+    }
+    if (obj.type === 'bind') {
+    controllerMap.set(obj.clientId, ws);
+    ws._clientId = obj.clientId;
+    console.log("Controller 绑定:", obj.clientId);
+
+    // 如果 Unity 已在线 → 通知网页可以开始控制
+    if (unityMap.has(obj.clientId)) {
+        ws.send(JSON.stringify({ type:"ok", msg:"Unity found" }));
+    }
+    else {
+        ws.send(JSON.stringify({ type:"waiting", msg:"Waiting for Unity..." }));
+    }
+    return;
+    }
     } catch(e){}
     // 简单广播：把收到的消息转发给所有已连接客户端（包括发送者）
     for (const client of wss.clients) {
@@ -123,7 +152,6 @@ const pingInterval = setInterval(() => {
   const now = Date.now();
   for (const ws of wss.clients) {
     if (ws._isAlive === false) {
-      // console.log(`[terminate] id=${ws._id} ip=${ws._meta && ws._meta.ip}`);
       console.log(`[terminate] id=${ws._id}`);
       try { ws.terminate(); } catch (_) {}
       continue;
